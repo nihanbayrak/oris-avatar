@@ -117,3 +117,6 @@ Find voice IDs at: https://api.elevenlabs.io/v1/voices
 ## License
 
 MIT
+
+---
+Made with AI
