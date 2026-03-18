@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORIS 1.0 | Character Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --oris-accent: #00f2ff;
+            --oris-bg: #0a0a0c;
+        }
+
+        body {
+            background-color: var(--oris-bg);
+            color: #e2e8f0;
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glow-border {
+            position: relative;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .glow-border:hover {
+            border-color: var(--oris-accent);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #fff, var(--oris-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 242, 255, 0.1);
+            position: absolute;
+            animation: scan 4s linear infinite;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0%;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+
+        .terminal-container {
+            background: rgba(10, 10, 12, 0.85);
+            backdrop-filter: blur(10px);
+        }
+
+        #chat-window::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #chat-window::-webkit-scrollbar-thumb {
+            background: var(--oris-accent);
+            border-radius: 10px;
+        }
+
+        .loading-dots::after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60% {
+                content: '...';
+            }
+
+            80%,
+            100% {
+                content: '';
+            }
+        }
+
+        /* Hologram Effects */
+        .hologram-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hologram-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                transparent 0%,
+                rgba(0, 242, 255, 0.03) 50%,
+                transparent 100%
+            );
+            background-size: 100% 4px;
+            z-index: 20;
+            pointer-events: none;
+            animation: hologram-scanlines 0.1s linear infinite;
+        }
+
+        .hologram-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 20, 30, 0.4) 100%);
+            z-index: 21;
+            pointer-events: none;
+        }
+
+        @keyframes hologram-scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 4px; }
+        }
+
+        #avatar-canvas {
+            filter:
+                drop-shadow(0 0 10px rgba(0, 242, 255, 0.5))
+                drop-shadow(0 0 20px rgba(0, 242, 255, 0.3))
+                drop-shadow(0 0 40px rgba(0, 242, 255, 0.2));
+            animation: hologram-flicker 4s ease-in-out infinite;
+        }
+
+        @keyframes hologram-flicker {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5)) drop-shadow(0 0 20px rgba(0, 242, 255, 0.3)) brightness(1); }
+            92% { opacity: 1; filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5)) drop-shadow(0 0 20px rgba(0, 242, 255, 0.3)) brightness(1); }
+            93% { opacity: 0.8; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.8)) brightness(1.2); }
+            94% { opacity: 1; filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5)) brightness(1); }
+            96% { opacity: 0.9; filter: drop-shadow(0 0 20px rgba(0, 242, 255, 0.6)) brightness(1.1); }
+            97% { opacity: 1; }
+        }
+
+        .hologram-glow {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 40px;
+            background: radial-gradient(ellipse at center, rgba(0, 242, 255, 0.4) 0%, transparent 70%);
+            filter: blur(10px);
+            z-index: 5;
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 0.6; transform: translateX(-50%) scaleX(1); }
+            50% { opacity: 1; transform: translateX(-50%) scaleX(1.1); }
+        }
+
+        .hologram-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 242, 255, 0.03) 2px,
+                rgba(0, 242, 255, 0.03) 4px
+            );
+            z-index: 22;
+            pointer-events: none;
+        }
+
+        .glitch-effect {
+            animation: glitch 5s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            91% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
+            92% { transform: translate(2px, -1px); }
+            93% { transform: translate(-1px, 2px); filter: hue-rotate(-90deg); }
+            94% { transform: translate(0); }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Settings Overlay -->
+    <div id="settings-modal"
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-[#111] border border-cyan-500/30 w-full max-w-md p-6 rounded-xl glow-border">
+            <h2 class="text-xl font-bold mono text-cyan-400 mb-4">SYSTEM CONFIGURATION</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] mono text-gray-500 uppercase mb-1">Character Definition (System
+                        Prompt)</label>
+                    <textarea id="system-prompt" rows="5"
+                        class="w-full bg-black/50 border border-white/10 rounded p-3 text-sm mono text-cyan-100 outline-none focus:border-cyan-500/50"
+                        placeholder="Describe your character's personality, knowledge, and style here...">You are an advanced AI character powered by the ORIS-1.0 architecture. You are helpful, analytical, and speak with a slight cybernetic tone.</textarea>
+                </div>
+                <button onclick="toggleSettings()"
+                    class="w-full bg-cyan-500 text-black py-2 rounded font-bold mono text-sm hover:bg-cyan-400 transition-all">
+                    SAVE & CLOSE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="border-b border-white/10 p-6 flex justify-between items-center bg-black/50 sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-cyan-500 animate-pulse"></div>
+            <span class="text-xl font-bold tracking-tighter mono uppercase">ORIS-1.0</span>
+        </div>
+        <div class="flex space-x-4 md:space-x-8 text-sm mono text-gray-400">
+            <button onclick="toggleSettings()"
+                class="hover:text-cyan-400 transition-colors uppercase text-xs">Settings</button>
+            <a href="#" class="hidden md:block hover:text-cyan-400 transition-colors uppercase text-xs">Docs</a>
+        </div>
+        <button
+            class="bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-1.5 rounded-sm text-xs font-bold mono transition-all">
+            LIVE
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
+
+        <!-- Left: Character Card -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="glow-border rounded-xl overflow-hidden bg-white/5">
+                <div
+                    class="aspect-square bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center relative hologram-container">
+                    <canvas id="avatar-canvas" class="w-full h-full object-cover relative z-10 glitch-effect" width="1280" height="720"></canvas>
+                    <div class="hologram-lines"></div>
+                    <div class="hologram-glow"></div>
+                    <div id="avatar-placeholder" class="absolute inset-0 flex items-center justify-center">
+                        <div class="scanline"></div>
+                        <svg viewBox="0 0 200 200" class="w-48 h-48 text-cyan-500 opacity-80">
+                            <circle cx="100" cy="80" r="40" stroke="currentColor" stroke-width="2" fill="none" />
+                            <path d="M40 160 Q100 120 160 160" stroke="currentColor" stroke-width="2" fill="none" />
+                            <rect x="70" y="70" width="60" height="20" fill="currentColor" class="opacity-20" />
+                        </svg>
+                    </div>
+                    <div class="absolute bottom-4 left-4 z-30">
+                        <span id="connection-status"
+                            class="bg-red-500/20 text-red-400 text-[10px] px-2 py-0.5 rounded border border-red-500/30 mono backdrop-blur-sm">DISCONNECTED</span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <h1 class="text-3xl font-bold gradient-text" id="display-name">Nihan</h1>
+                    <p class="text-gray-400 text-sm mt-2 leading-relaxed" id="display-desc">
+                        Character interface connected to live reasoning core. Define personality in settings.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glow-border bg-white/5 p-4 rounded-xl">
+                    <p class="text-[10px] mono text-gray-500 uppercase mb-1">Response Speed</p>
+                    <p class="text-2xl font-bold tracking-tight" id="latency-stat">--</p>
+                </div>
+                <div class="glow-border bg-white/5 p-4 rounded-xl">
+                    <p class="text-[10px] mono text-gray-500 uppercase mb-1">Model State</p>
+                    <p class="text-2xl font-bold tracking-tight text-green-400">READY</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Terminal Interface -->
+        <div class="lg:col-span-8 flex flex-col">
+            <div
+                class="glow-border rounded-xl overflow-hidden terminal-container flex flex-col flex-grow min-h-[500px]">
+                <div class="bg-white/10 px-4 py-2 flex items-center justify-between border-b border-white/5">
+                    <div class="flex space-x-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+                    </div>
+                    <span class="text-[10px] mono text-gray-500">oris@logic-node:~/live-session</span>
+                    <div class="w-10"></div>
+                </div>
+
+                <div id="chat-window" class="p-6 flex-grow overflow-y-auto space-y-4 mono text-sm">
+                    <div class="text-gray-500">Connecting to API... [OK]</div>
+                    <div class="text-cyan-400">Interface online. All systems functional.</div>
+                </div>
+
+                <div class="p-4 border-t border-white/10 bg-black/40">
+                    <form id="chat-form" class="flex items-center space-x-4">
+                        <span class="text-cyan-500 font-bold mono">></span>
+                        <input type="text" id="user-input" placeholder="Type message to your character..."
+                            class="bg-transparent border-none outline-none flex-grow mono text-cyan-100 placeholder:text-gray-700"
+                            autocomplete="off">
+                        <button type="submit" id="send-btn" class="text-gray-500 hover:text-cyan-400 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="module">
+        const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+        const ojinApiKey = import.meta.env.VITE_ODJIN_API_KEY || "";
+        const ojinConfigId = import.meta.env.VITE_ODJIN_CONFIG_ID || "oris-1.0";
+        const elevenlabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY || "";
+
+        const chatWindow = document.getElementById('chat-window');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const systemPromptInput = document.getElementById('system-prompt');
+        const latencyStat = document.getElementById('latency-stat');
+        const sendBtn = document.getElementById('send-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const connectionStatus = document.getElementById('connection-status');
+        const avatarCanvas = document.getElementById('avatar-canvas');
+        const avatarCtx = avatarCanvas.getContext('2d');
+        const avatarPlaceholder = document.getElementById('avatar-placeholder');
+        const displayName = document.getElementById('display-name');
+
+        // Initialize custom persona from .env if provided
+        if (import.meta.env.VITE_SYSTEM_PROMPT) {
+            systemPromptInput.value = import.meta.env.VITE_SYSTEM_PROMPT;
+        }
+
+        let isProcessing = false;
+        let ojinWebSocket = null;
+        let audioContext = null;
+        
+        // Ojin logic buffers
+        let avatarBuffer = [];
+        let playbackStarted = false;
+        let pcmAudioBufferQueue = []; 
+        let nextAudioTime = 0;
+        let TARGET_BUFFER = 10;
+        let frameCount = 0;
+        let skipCounter = 0;
+
+        // Start animation loop
+        requestAnimationFrame(renderAvatarLoop);
+        
+        function updateConnectionStatus(status, color) {
+            connectionStatus.textContent = status;
+            connectionStatus.className = `bg-${color}-500/20 text-${color}-400 text-[10px] px-2 py-0.5 rounded border border-${color}-500/30 mono`;
+            if (status === 'CONNECTED') {
+                avatarPlaceholder.classList.add('hidden');
+            } else {
+                avatarPlaceholder.classList.remove('hidden');
+            }
+        }
+
+        async function connectOjin() {
+            if (!ojinApiKey) {
+                appendMessage('SYSTEM', 'Ojin API Key missing. Please check your .env file.', 'error');
+                return;
+            }
+
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                // We use our Vite proxy so we don't need to specify the API key here
+                const url = `ws://${window.location.host}/ojin/realtime?config_id=${ojinConfigId}`;
+                ojinWebSocket = new WebSocket(url);
+
+                updateConnectionStatus('CONNECTING...', 'yellow');
+
+                ojinWebSocket.onopen = () => {
+                    appendMessage('SYSTEM', 'WebSocket connection established.', 'bot');
+                };
+
+                ojinWebSocket.onmessage = async (event) => {
+                    if (typeof event.data === 'string') {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'sessionReady') {
+                            updateConnectionStatus('CONNECTED', 'cyan');
+                            appendMessage('SYSTEM', 'Ojin Session Ready. Streaming started.', 'bot');
+                            // Update display name from Ojin config if available
+                            if (msg.payload?.config?.name) {
+                                displayName.textContent = msg.payload.config.name;
+                            } else if (msg.payload?.name) {
+                                displayName.textContent = msg.payload.name;
+                            }
+                        } else if (msg.type === 'errorResponse') {
+                            updateConnectionStatus('ERROR', 'red');
+                            appendMessage('SYSTEM', `Ojin Error: ${msg.payload?.message || JSON.stringify(msg.payload)}`, 'error');
+                        }
+                    } else if (event.data instanceof Blob) {
+                        // Binary frame (InteractionResponse)
+                        const arrayBuffer = await event.data.arrayBuffer();
+                        const dataView = new DataView(arrayBuffer);
+                        
+                        // Parse header '!B16sQIII'
+                        // Header is 33 bytes in python struct struct.calcsize('!B16sQIII') = 1 + 16 + 8 + 4 + 4 + 4 = 37 bytes
+                        const isFinal = dataView.getUint8(0);
+                        // UUID (16 bytes) at offset 1
+                        const timestamp = dataView.getBigUint64(17, false); // Big endian
+                        const usage = dataView.getUint32(25, false);
+                        const index = dataView.getUint32(29, false); // 0 = silence, 1 = speech
+                        const nPayloads = dataView.getUint32(33, false);
+
+                        let offset = 37;
+                        let imageBlob = null;
+                        let audioData = null;
+
+                        for (let i = 0; i < nPayloads; i++) {
+                            const size = dataView.getUint32(offset, false);
+                            const pType = dataView.getUint8(offset + 4);
+                            offset += 5;
+                            
+                            const payloadBuffer = arrayBuffer.slice(offset, offset + size);
+                            if (pType === 2) { // Image
+                                imageBlob = new Blob([payloadBuffer], { type: 'image/jpeg' });
+                            } else if (pType === 1) { // Audio
+                                audioData = payloadBuffer;
+                            }
+                            
+                            offset += size;
+                        }
+
+                        avatarBuffer.push({
+                            index: index,
+                            imageBlob: imageBlob,
+                            audioData: audioData
+                        });
+                        frameCount++;
+
+                        if (!playbackStarted && avatarBuffer.length >= TARGET_BUFFER) {
+                            playbackStarted = true;
+                        }
+                    }
+                };
+
+                ojinWebSocket.onerror = (error) => {
+                    updateConnectionStatus('ERROR', 'red');
+                    appendMessage('SYSTEM', 'Ojin WebSocket Error.', 'error');
+                };
+
+                ojinWebSocket.onclose = () => {
+                    updateConnectionStatus('DISCONNECTED', 'red');
+                    playbackStarted = false;
+                };
+
+            } catch (error) {
+                appendMessage('SYSTEM', 'Failed to connect to Ojin: ' + error.message, 'error');
+            }
+        }
+
+        async function renderAvatarLoop() {
+            if (playbackStarted && avatarBuffer.length > 0) {
+                let frame = avatarBuffer.shift();
+
+                // Drop excess silence frames to keep latency low
+                if (avatarBuffer.length > TARGET_BUFFER && frame.index === 0) {
+                    skipCounter++;
+                    if (skipCounter % 2 === 0 && avatarBuffer.length > 0) {
+                        frame = avatarBuffer.shift();
+                    }
+                }
+
+                // Render Image
+                if (frame.imageBlob) {
+                    const img = new Image();
+                    img.onload = () => {
+                        avatarCtx.drawImage(img, 0, 0, avatarCanvas.width, avatarCanvas.height);
+                        URL.revokeObjectURL(img.src);
+                    };
+                    img.src = URL.createObjectURL(frame.imageBlob);
+                }
+
+                // Play Audio
+                if (frame.audioData && audioContext && frame.index === 1) {
+                    const int16Array = new Int16Array(frame.audioData);
+                    const float32Array = new Float32Array(int16Array.length);
+                    for (let i = 0; i < int16Array.length; i++) {
+                        float32Array[i] = int16Array[i] / 32768.0;
+                    }
+
+                    const audioBuffer = audioContext.createBuffer(1, float32Array.length, 16000);
+                    audioBuffer.getChannelData(0).set(float32Array);
+                   
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioContext.destination);
+
+                    // Ensure smooth continuous playback
+                    const currentTime = audioContext.currentTime;
+                    if (nextAudioTime < currentTime) {
+                        nextAudioTime = currentTime + 0.05; // buffer 50ms
+                    }
+                    source.start(nextAudioTime);
+                    nextAudioTime += audioBuffer.duration;
+                }
+            }
+            requestAnimationFrame(renderAvatarLoop);
+        }
+
+        // --- Text/Audio Processing ---
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function resampleAudioTo16k(audioBuffer24k) {
+            const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, audioBuffer24k.duration * 16000, 16000);
+            const source = offlineCtx.createBufferSource();
+            source.buffer = audioBuffer24k;
+            source.connect(offlineCtx.destination);
+            source.start(0);
+            const resampled = await offlineCtx.startRendering();
+            
+            const channelData = resampled.getChannelData(0);
+            const pcm16 = new Int16Array(channelData.length);
+            for (let i = 0; i < channelData.length; i++) {
+                let s = Math.max(-1, Math.min(1, channelData[i]));
+                pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            return pcm16.buffer;
+        }
+
+        async function callGemini(prompt, systemInstruction) {
+            if (!geminiApiKey) throw new Error("Missing Gemini API Key in .env");
+            
+            // Using the stable Gemini flash endpoint
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`Gemini Chat HTTP Error: ${response.status}`);
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "Error: No response generated.";
+        }
+
+        async function getElevenLabsTTS(text) {
+            if (!elevenlabsApiKey) throw new Error("Missing ElevenLabs API Key");
+
+            // Using "Rachel" voice (21m00Tcm4TlvDq8ikWAM) - reliable default
+            const voiceId = "21m00Tcm4TlvDq8ikWAM";
+            const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'xi-api-key': elevenlabsApiKey
+                },
+                body: JSON.stringify({
+                    text: text,
+                    model_id: "eleven_turbo_v2_5",
+                    voice_settings: {
+                        stability: 0.5,
+                        similarity_boost: 0.75
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const message = errorData?.detail?.message || `HTTP ${response.status}`;
+                throw new Error(message);
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+
+            if (!audioContext || audioContext.state === 'suspended') {
+                await audioContext?.resume?.();
+            }
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            return { audioBuffer, pcm16k: await resampleAudioTo16k(audioBuffer) };
+        }
+
+        function playAudioBuffer(audioBuffer) {
+            return new Promise((resolve) => {
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                source.onended = resolve;
+                source.start(0);
+            });
+        }
+
+        function speakWithBrowserTTS(text) {
+            return new Promise((resolve, reject) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.onend = () => resolve();
+                utterance.onerror = (e) => reject(e);
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        function generateSilentPCM(durationMs) {
+            const sampleRate = 16000;
+            const numSamples = Math.floor((durationMs / 1000) * sampleRate);
+            const buffer = new ArrayBuffer(numSamples * 2);
+            return buffer;
+        }
+
+        async function textToSpeech(text) {
+            // Try ElevenLabs first, fallback to browser TTS
+            try {
+                const { audioBuffer, pcm16k } = await getElevenLabsTTS(text);
+                return { audioBuffer, pcm16k, method: 'elevenlabs' };
+            } catch (error) {
+                console.warn('ElevenLabs failed, using browser TTS:', error.message);
+                appendMessage('SYSTEM', `ElevenLabs unavailable (${error.message}). Using browser voice.`, 'bot');
+                // Generate silent PCM for Ojin since browser TTS doesn't provide audio data
+                const silentPcm = generateSilentPCM(text.length * 60);
+                return { audioBuffer: null, pcm16k: silentPcm, method: 'browser', text };
+            }
+        }
+
+        function sendAudioToOjin(pcm16kBuffer) {
+            if (!ojinWebSocket || ojinWebSocket.readyState !== WebSocket.OPEN) return;
+            
+            const chunk_size = 12800; // 400ms chunks (16000hz * 2bytes * 0.4s)
+            const audioData = new Uint8Array(pcm16kBuffer);
+
+            for (let i = 0; i < audioData.length; i += chunk_size) {
+                const chunk = audioData.slice(i, i + chunk_size);
+                
+                // Pack header '!BQI' (1 byte type + 8 bytes timestamp + 4 bytes param size)
+                const headerBuffer = new ArrayBuffer(13);
+                const dataView = new DataView(headerBuffer);
+                dataView.setUint8(0, 1); // Type = audio
+                dataView.setBigUint64(1, BigInt(Date.now()), false); // Timestamp Ms
+                
+                const paramsStr = JSON.stringify({
+                    "speech_filter_amount": 5.0,
+                    "speech_mouth_opening_scale": 1.0
+                });
+                const encoder = new TextEncoder();
+                const paramsBytes = encoder.encode(paramsStr);
+                
+                dataView.setUint32(9, paramsBytes.length, false);
+
+                // Combine Header + Params + Audio Chunk
+                const message = new Uint8Array(13 + paramsBytes.length + chunk.length);
+                message.set(new Uint8Array(headerBuffer), 0);
+                message.set(paramsBytes, 13);
+                message.set(chunk, 13 + paramsBytes.length);
+
+                ojinWebSocket.send(message.buffer);
+            }
+            appendMessage('SYSTEM', 'Avatar audio sent to model.', 'bot');
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text || isProcessing) return;
+
+            // Connect WebSocket on first interaction as the browser requires user gesture to start AudioContext
+            if (!ojinWebSocket) connectOjin();
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            setLoading(true);
+            appendMessage('USER', text, 'user');
+            userInput.value = '';
+
+            const startTime = Date.now();
+            const systemPrompt = systemPromptInput.value;
+
+            try {
+                // 1. Get Text from Gemini
+                appendMessage('SYSTEM', 'Generating text response...', 'bot');
+                const textResponse = await callGemini(text, systemPrompt);
+                const duration = Date.now() - startTime;
+                latencyStat.textContent = `${duration}ms`;
+                appendMessage('ORIS', textResponse, 'bot');
+
+                // 2. Convert text to speech (ElevenLabs or fallback)
+                appendMessage('SYSTEM', 'Generating speech...', 'bot');
+                const ttsResult = await textToSpeech(textResponse);
+
+                // 3. Send audio to Ojin for lip-sync animation
+                sendAudioToOjin(ttsResult.pcm16k);
+
+                // 4. Play audio locally
+                if (ttsResult.method === 'elevenlabs' && ttsResult.audioBuffer) {
+                    await playAudioBuffer(ttsResult.audioBuffer);
+                } else {
+                    await speakWithBrowserTTS(ttsResult.text);
+                }
+                
+            } catch (error) {
+                appendMessage('SYSTEM', `Core timeout or error: ${error.message}`, 'error');
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(loading) {
+            isProcessing = loading;
+            userInput.disabled = loading;
+            sendBtn.style.opacity = loading ? '0.3' : '1';
+            if (loading) {
+                const loader = document.createElement('div');
+                loader.id = 'temp-loader';
+                loader.className = 'text-cyan-500/50 mono text-xs italic loading-dots';
+                loader.textContent = 'Character is thinking';
+                chatWindow.appendChild(loader);
+            } else {
+                const loader = document.getElementById('temp-loader');
+                if (loader) loader.remove();
+            }
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function appendMessage(sender, text, type) {
+            const div = document.createElement('div');
+            let color = 'text-cyan-400';
+            if (type === 'user') color = 'text-white';
+            if (type === 'error') color = 'text-red-500';
+
+            div.innerHTML = `<span class="${color} font-bold">[${sender}]:</span> <span class="text-gray-300">${text}</span>`;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function toggleSettings() {
+            settingsModal.classList.toggle('hidden');
+        }
+    </script>
+</body>
+
+</html>
